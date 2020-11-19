@@ -485,16 +485,48 @@ contexts:
     - include: else-pop
 
   variable-binding-top:
-    - match: (?={{identifier}}{{function_assignment_lookahead}})
-      set:
-        - initializer
-        - function-name-meta
-        - variable-binding-pattern
+    # - match: (?={{identifier}}{{function_assignment_lookahead}})
+    #   set:
+    #     - initializer
+    #     - function-name-meta
+    #     - variable-binding-pattern
+    - match: (?={{non_reserved_identifier}})
+      pop: true
+      branch_point: variable-binding-top-possible-function
+      branch:
+        - variable-binding-top-possible-function
+        - variable-binding-function-name
     - match: (?={{binding_pattern_lookahead}})
       set:
         - initializer
         - variable-binding-pattern
     - include: else-pop
+
+  variable-binding-top-possible-function:
+    - meta_include_prototype: false
+    - match: ''
+      set:
+        - initializer-not-function
+        - variable-binding-pattern
+
+  variable-binding-function-name:
+    - match: (?={{non_reserved_identifier}})
+      set:
+        - - include: initializer
+        - - meta_scope: meta.binding.name.js
+          - include: function-declaration-expect-name
+
+  initializer-not-function:
+    - match: '='
+      scope: keyword.operator.assignment.js
+      set: expression-no-comma-no-function
+    - include: else-pop
+
+  expression-no-comma-no-function:
+    - match: (?={{func_lookahead}})
+      fail: variable-binding-top-possible-function
+    - match: (?=\S)
+      set: expression-no-comma
 
   variable-binding-list-top:
     - match: '{{line_ending_ahead}}'
